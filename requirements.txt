@@ -4,4 +4,5 @@ pandas
 scikit-learn
 seaborn
 nltk
-pickle5
+pickle
+favicom
