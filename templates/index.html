@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Financial News Sentiment Analyzer</title>
+    <style>
+      /* Inline CSS */
+      :root{ --bg:#0f1724; --card:#0b1220; --accent:#3b82f6; --text:#e6eef8; --muted:#9aaabe }
+      *{box-sizing:border-box}
+      body{font-family:Inter,Segoe UI,Roboto,Arial,Helvetica,sans-serif;background:linear-gradient(135deg,#071021 0%, #0b1020 100%);color:var(--text);margin:0;padding:0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+      .container{width:100%;max-width:880px;padding:28px}
+      .card{background:rgba(255,255,255,0.03);border-radius:12px;padding:28px;box-shadow:0 6px 22px rgba(2,6,23,0.6)}
+      h1{margin:0 0 8px;font-size:22px}
+      p.lead{margin:0 0 18px;color:var(--muted)}
+      textarea{width:100%;min-height:140px;padding:12px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:var(--text);resize:vertical;font-size:15px}
+      .row{display:flex;gap:12px;align-items:center;margin-top:12px}
+      button{background:var(--accent);color:white;padding:10px 14px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
+      button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+      .result{margin-top:18px;padding:14px;border-radius:8px;background:linear-gradient(90deg, rgba(59,130,246,0.08), rgba(59,130,246,0.03));color:var(--text);border:1px solid rgba(59,130,246,0.12)}
+      .muted{color:var(--muted);font-size:13px}
+      .footer{margin-top:18px;font-size:13px;color:var(--muted)}
+      .loader{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,0.08);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;vertical-align:middle}
+      @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Financial News Sentiment Analyzer</h1>
+        <p class="lead">Enter a news snippet below and click "Analyze" — the model will predict sentiment.</p>
+
+        <form id="predict-form">
+          <textarea id="message" name="message" placeholder="Paste or type the news text here..."></textarea>
+          <div class="row">
+            <button id="analyze">Analyze</button>
+            <button id="clear" type="button" class="secondary">Clear</button>
+            <div style="flex:1"></div>
+            <div class="muted">Model: Decision Tree · Vectorizer: TF-IDF</div>
+          </div>
+        </form>
+
+        <div id="output" class="result" style="display:none"></div>
+        <div class="footer">Tip: For best results provide at least one sentence describing company events.</div>
+      </div>
+    </div>
+
+    <script>
+      // Inline JS: handle form submit and display prediction
+      const form = document.getElementById('predict-form');
+      const messageEl = document.getElementById('message');
+      const outputEl = document.getElementById('output');
+      const analyzeBtn = document.getElementById('analyze');
+      const clearBtn = document.getElementById('clear');
+
+      function showResult(text){
+        outputEl.style.display = 'block';
+        outputEl.innerHTML = text;
+      }
+
+      clearBtn.addEventListener('click', () => {
+        messageEl.value = '';
+        outputEl.style.display = 'none';
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = messageEl.value.trim();
+        if(!text){
+          showResult('<span class="muted">Please enter some text to analyze.</span>');
+          return;
+        }
+
+        // show loading
+        analyzeBtn.disabled = true;
+        const loader = document.createElement('span'); loader.className = 'loader';
+        analyzeBtn.prepend(loader);
+
+        try{
+          const formData = new FormData();
+          formData.append('message', text);
+          const res = await fetch('/predict', {method:'POST', body: formData});
+          if(!res.ok) throw new Error('Network error: ' + res.status);
+          const data = await res.json();
+
+          // Map numeric label to readable sentiment if needed
+          let label = data.prediction;
+          let labelText = label;
+          if(label === 0 || label === '0' || label === 'neutral') labelText = 'Neutral';
+          else if(label === 1 || label === '1' || label === 'positive') labelText = 'Positive';
+          else if(label === -1 || label === '-1' || label === 'negative' || label === 2 || label === '2') labelText = 'Negative';
+
+          showResult('<strong>Predicted sentiment:</strong> ' + labelText + '<br><div style="margin-top:8px;color:var(--muted);">Raw response: ' + JSON.stringify(data) + '</div>');
+        }catch(err){
+          showResult('<span class="muted">Error: ' + err.message + '</span>');
+        }finally{
+          analyzeBtn.disabled = false;
+          const firstChild = analyzeBtn.querySelector('.loader');
+          if(firstChild) analyzeBtn.removeChild(firstChild);
+        }
+      });
+    </script>
+  </body>
+</html>

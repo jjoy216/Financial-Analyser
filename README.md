@@ -1,4 +1,5 @@
 # Financial News Sentiment Analyzer
+
 This small Flask app serves a trained sentiment model (Decision Tree + TF-IDF) to predict sentiment for short financial news snippets.
 
 Project structure
